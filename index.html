@@ -2,7 +2,7 @@
 <html lang="he">
 <head>
 <meta charset="UTF-8">
-<title>מערכת ציוד - עפולה</title>
+<title>מערכת ציוד</title>
 
 <style>
 body{
@@ -21,28 +21,27 @@ body{
   box-shadow:0 0 10px rgba(0,0,0,0.1);
 }
 
-input,button{
-  padding:10px;
-  margin:8px;
-  width:85%;
-  font-size:16px;
-}
-
-button{
-  background:orange;
-  border:none;
-  color:white;
-  border-radius:6px;
-}
-
-.tab-btn{
+/* כפתורי טאבים */
+.tabs button{
   width:30%;
+  padding:10px;
   margin:5px;
+  border:none;
+  border-radius:8px;
+  background:orange;
+  color:white;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.tab{
+  display:none;
+  margin-top:15px;
 }
 
 .item{
   background:#f8f8f8;
-  margin:10px;
+  margin:8px;
   padding:10px;
   border-radius:8px;
 }
@@ -55,100 +54,57 @@ button{
 
 <h2>🚑 מערכת ציוד</h2>
 
-<div id="loginBox">
-  <input id="codeInput" placeholder="קוד כונן" />
-  <button onclick="login()">כניסה</button>
-  <p id="msg"></p>
+<div class="tabs">
+  <button onclick="openTab('bls')">🚑 כונן BLS</button>
+  <button onclick="openTab('mish')">🎒 משתלם</button>
+  <button onclick="openTab('heart')">❤️ תן כבוד</button>
 </div>
 
-<div id="app" style="display:none;">
-
-  <h3 id="hello"></h3>
-
-  <button class="tab-btn" onclick="showTab('bls')">BLS</button>
-  <button class="tab-btn" onclick="showTab('mish')">משתלם</button>
-  <button class="tab-btn" onclick="showTab('honor')">תן כבוד</button>
-
-  <div id="content"></div>
+<div id="bls" class="tab"></div>
+<div id="mish" class="tab"></div>
+<div id="heart" class="tab"></div>
 
 </div>
 
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const app = initializeApp({
-  apiKey:"AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
-  authDomain:"afula-equipment.firebaseapp.com",
-  projectId:"afula-equipment"
-});
-
-const db = getFirestore(app);
-
-let user = null;
-let menus = {};
-let currentTab = "bls";
-
-/* ---------- LOGIN ---------- */
-window.login = async function(){
-
-  const code = document.getElementById("codeInput").value.trim();
-
-  const snap = await getDocs(collection(db,"volunteers"));
-
-  let found = null;
-
-  snap.forEach(d=>{
-    const x = d.data();
-    if(String(x.code) === String(code)) found = x;
-  });
-
-  if(!found){
-    document.getElementById("msg").innerText = "כונן לא נמצא";
-    return;
-  }
-
-  user = found;
-
-  document.getElementById("loginBox").style.display="none";
-  document.getElementById("app").style.display="block";
-
-  document.getElementById("hello").innerText = "שלום " + found.name;
-
-  await loadMenus();
-
-  showTab("bls");
+<script>
+/* ---------- DATA ---------- */
+const data = {
+  bls: [
+    {name:"כפפות M", max:100},
+    {name:"פלסטרים", max:10},
+    {name:"תחבושת אישית", max:2}
+  ],
+  mish: [
+    {name:"כפפות M", max:30},
+    {name:"מדל״ד", max:1}
+  ],
+  heart: [
+    {name:"פלסטרים", max:10},
+    {name:"גזה", max:20},
+    {name:"כפפות S", max:30}
+  ]
 };
 
-/* ---------- LOAD ---------- */
-async function loadMenus(){
+/* ---------- TABS ---------- */
+function openTab(tab){
 
-  const snap = await getDocs(collection(db,"menus"));
+  // סגירה של כולם
+  document.getElementById("bls").style.display="none";
+  document.getElementById("mish").style.display="none";
+  document.getElementById("heart").style.display="none";
 
-  menus = {};
+  // פתיחה של הנבחר
+  document.getElementById(tab).style.display="block";
 
-  snap.forEach(doc=>{
-    menus[doc.data().title.toLowerCase()] = doc.data().items;
-  });
+  render(tab);
 }
 
-/* ---------- TABS ---------- */
-window.showTab = function(tab){
-
-  currentTab = tab;
-
-  const items = menus[tab];
-
-  if(!items){
-    document.getElementById("content").innerHTML = "אין נתונים";
-    return;
-  }
+/* ---------- RENDER ---------- */
+function render(tab){
 
   let html = "";
 
-  items.forEach(i=>{
+  data[tab].forEach(i=>{
     html += `
       <div class="item">
         <b>${i.name}</b><br/>
@@ -157,9 +113,11 @@ window.showTab = function(tab){
     `;
   });
 
-  document.getElementById("content").innerHTML = html;
-};
+  document.getElementById(tab).innerHTML = html;
+}
 
+/* פתיחה ראשונית */
+openTab('bls');
 </script>
 
 </body>
