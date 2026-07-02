@@ -5,56 +5,13 @@
 <title>מערכת ציוד - עפולה</title>
 
 <style>
-body {
-  font-family: Arial;
-  direction: rtl;
-  background: #f5f5f5;
-  text-align: center;
-  padding: 20px;
-}
-
-.box {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  max-width: 500px;
-  margin: auto;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-
-input, button {
-  padding: 10px;
-  margin: 8px;
-  width: 85%;
-  font-size: 16px;
-}
-
-button {
-  background: orange;
-  border: none;
-  color: white;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-button:hover {
-  background: darkorange;
-}
-
-.tab {
-  display: none;
-}
-
-.tab.active {
-  display: block;
-}
-
-.item {
-  margin: 10px 0;
-  padding: 10px;
-  background: #fafafa;
-  border-radius: 8px;
-}
+body { font-family: Arial; direction: rtl; background:#f5f5f5; text-align:center; }
+.box { background:#fff; max-width:500px; margin:auto; padding:20px; border-radius:12px; }
+input,button { padding:10px; margin:8px; width:85%; }
+button { background:orange; color:white; border:none; border-radius:6px; cursor:pointer; }
+.tab { display:none; }
+.tab.active { display:block; }
+.item { background:#f8f8f8; margin:10px; padding:10px; border-radius:8px; }
 </style>
 </head>
 
@@ -62,30 +19,23 @@ button:hover {
 
 <div class="box">
 
-<h2>🚑 מערכת ציוד - סניף עפולה</h2>
+<h2>🚑 מערכת ציוד - עפולה</h2>
 
-<!-- התחברות -->
 <div id="loginBox">
-  <input id="codeInput" placeholder="הכנס מספר כונן" />
+  <input id="codeInput" placeholder="קוד כונן" />
   <button onclick="login()">כניסה</button>
   <p id="msg"></p>
 </div>
 
-<!-- תפריט -->
 <div id="menu" style="display:none;">
   <h3 id="welcome"></h3>
 
-  <button onclick="showTab('bls')">🚑 כונן BLS</button>
-  <button onclick="showTab('mish')">🎒 משתלם</button>
-  <button onclick="showTab('honor')">❤️ תן כבוד</button>
+  <button onclick="showTab('bls')">BLS</button>
+  <button onclick="showTab('mish')">משתלם</button>
+  <button onclick="showTab('honor')">תן כבוד</button>
 
-  <!-- BLS -->
   <div id="bls" class="tab"></div>
-
-  <!-- משתלם -->
   <div id="mish" class="tab"></div>
-
-  <!-- תן כבוד -->
   <div id="honor" class="tab"></div>
 </div>
 
@@ -95,59 +45,130 @@ button:hover {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
   authDomain: "afula-equipment.firebaseapp.com",
-  projectId: "afula-equipment",
-  storageBucket: "afula-equipment.firebasestorage.app",
-  messagingSenderId: "1017822544815",
-  appId: "1:1017822544815:web:15b410398a8908fc9d655a"
-};
+  projectId: "afula-equipment"
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let currentUser = null;
+let state = { bls:[], mish:[], honor:[] };
 
-function normalize(d){
-  return {
-    code: String(d.code || d.Code || "").trim(),
-    name: String(d.name || d.Name || "")
-  };
+/* ---------- RESTORE STATE ---------- */
+const saved = localStorage.getItem("order_state");
+if(saved){
+  try{
+    state = JSON.parse(saved);
+  } catch(e){}
+}
+
+/* ---------- SAVE ---------- */
+function saveState(){
+  localStorage.setItem("order_state", JSON.stringify(state));
 }
 
 /* ---------- LOGIN ---------- */
-window.login = async function () {
+window.login = async function(){
 
   const code = document.getElementById("codeInput").value.trim();
 
-  const snap = await getDocs(collection(db, "volunteers"));
+  const snap = await getDocs(collection(db,"volunteers"));
 
   let found = null;
 
-  snap.forEach(doc => {
-    const d = normalize(doc.data());
-    if (d.code === code) found = d;
+  snap.forEach(d=>{
+    const x = d.data();
+    if(String(x.code) === String(code)) found = x;
   });
 
-  if (!found) {
-    document.getElementById("msg").innerText = "כונן לא נמצא";
+  if(!found){
+    document.getElementById("msg").innerText="כונן לא נמצא";
     return;
   }
 
   currentUser = found;
 
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("menu").style.display = "block";
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("menu").style.display="block";
 
-  document.getElementById("welcome").innerText =
-    "שלום " + found.name;
+  document.getElementById("welcome").innerText="שלום "+found.name;
 
-  buildAll();
+  await loadMenus();
+  renderAll();
 };
 
-/* ---------- DATA ---------- */
-const data = {
-  bls: [
-    { name: "כפפות M", max: 100, val: 0 },
-    { name: "
+/* ---------- LOAD MENUS ---------- */
+async function loadMenus(){
+
+  const snap = await getDocs(collection(db,"menus"));
+
+  snap.forEach(doc=>{
+    const items = doc.data().items;
+
+    state[doc.id] = items.map(i=>({
+      name:i.name,
+      max:i.max,
+      val: state[doc.id]?.find(x=>x.name===i.name)?.val || 0
+    }));
+  });
+}
+
+/* ---------- RENDER ---------- */
+function renderAll(){
+  render("bls");
+  render("mish");
+  render("honor");
+}
+
+function render(type){
+
+  if(!state[type]) return;
+
+  let html="";
+
+  state[type].forEach((i,idx)=>{
+    html+=`
+      <div class="item">
+        <b>${i.name}</b><br/>
+        תקן: ${i.max}<br/>
+
+        <button onclick="minus('${type}',${idx})">➖</button>
+        ${i.val}
+        <button onclick="plus('${type}',${idx})">➕</button>
+      </div>
+    `;
+  });
+
+  document.getElementById(type).innerHTML=html;
+}
+
+/* ---------- TABS ---------- */
+window.showTab=function(t){
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.getElementById(t).classList.add("active");
+};
+
+/* ---------- PLUS MINUS ---------- */
+window.plus=function(t,i){
+
+  if(state[t][i].val < state[t][i].max){
+    state[t][i].val++;
+    saveState();
+    render(t);
+  }
+};
+
+window.minus=function(t,i){
+
+  if(state[t][i].val > 0){
+    state[t][i].val--;
+    saveState();
+    render(t);
+  }
+};
+</script>
+
+</body>
+</html>
