@@ -17,7 +17,7 @@ body {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  max-width: 420px;
+  max-width: 450px;
   margin: auto;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
@@ -70,8 +70,8 @@ button:hover {
   <h3 id="welcome"></h3>
 
   <button onclick="openBLS()">🚑 כונן BLS</button>
-  <button onclick="alert('משתלם בקרוב')">🎒 משתלם</button>
-  <button onclick="alert('תן כבוד בקרוב')">❤️ תן כבוד</button>
+  <button onclick="alert('משתלם בהמשך')">🎒 משתלם</button>
+  <button onclick="alert('תן כבוד בהמשך')">❤️ תן כבוד</button>
 
   <div id="content"></div>
 </div>
@@ -83,7 +83,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDplJPY5X9D7PeorWsMwJswqF5Q9vq730",
+  apiKey: "AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
   authDomain: "afula-equipment.firebaseapp.com",
   projectId: "afula-equipment",
   storageBucket: "afula-equipment.firebasestorage.app",
@@ -109,13 +109,19 @@ window.login = async function () {
 
   const code = document.getElementById("codeInput").value.trim();
 
+  if (!code) {
+    document.getElementById("msg").innerText = "הכנס מספר כונן";
+    return;
+  }
+
   const snap = await getDocs(collection(db, "volunteers"));
 
   let found = null;
 
   snap.forEach(doc => {
     const data = doc.data();
-    if (String(data.code) === String(code)) {
+
+    if (String(data.code).trim() === String(code).trim()) {
       found = data;
     }
   });
