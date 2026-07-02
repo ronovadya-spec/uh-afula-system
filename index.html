@@ -87,29 +87,45 @@ const db = getFirestore(app);
 
 window.login = async function () {
 
+  console.log("LOGIN START");
+
   const code = document.getElementById("codeInput").value.trim();
 
-  const snap = await getDocs(collection(db, "volunteers"));
-
-  let found = null;
-
-  snap.forEach(doc => {
-    const data = doc.data();
-    if (String(data.code) === String(code)) {
-      found = data;
-    }
-  });
-
-  if (!found) {
-    document.getElementById("msg").innerText = "כונן לא נמצא";
+  if (!code) {
+    document.getElementById("msg").innerText = "הכנס מספר כונן";
     return;
   }
 
-  document.getElementById("loginBox").classList.add("hidden");
-  document.getElementById("menu").classList.remove("hidden");
+  try {
+    const snap = await getDocs(collection(db, "volunteers"));
 
-  document.getElementById("welcome").innerText =
-    "שלום " + found.name;
+    console.log("DATA LOADED:", snap.docs.length);
+
+    let found = null;
+
+    snap.forEach(doc => {
+      const data = doc.data();
+      console.log(data);
+
+      if (String(data.code).trim() === String(code).trim()) {
+        found = data;
+      }
+    });
+
+    if (!found) {
+      document.getElementById("msg").innerText = "כונן לא נמצא";
+      return;
+    }
+
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("menu").classList.remove("hidden");
+
+    document.getElementById("welcome").innerText =
+      "שלום " + found.name;
+
+  } catch (e) {
+    document.getElementById("msg").innerText = "שגיאה בחיבור לשרת";
+  }
 };
 </script>
 
