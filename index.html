@@ -10,21 +10,21 @@ body {
   direction: rtl;
   background: #f5f5f5;
   text-align: center;
-  padding: 30px;
+  padding: 20px;
 }
 
 .box {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  max-width: 450px;
+  max-width: 500px;
   margin: auto;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
 input, button {
   padding: 10px;
-  margin: 10px;
+  margin: 8px;
   width: 85%;
   font-size: 16px;
 }
@@ -41,14 +41,20 @@ button:hover {
   background: darkorange;
 }
 
+.tab {
+  display: none;
+}
+
+.tab.active {
+  display: block;
+}
+
 .item {
   margin: 10px 0;
   padding: 10px;
   background: #fafafa;
   border-radius: 8px;
 }
-
-.hidden { display: none; }
 </style>
 </head>
 
@@ -66,14 +72,21 @@ button:hover {
 </div>
 
 <!-- תפריט -->
-<div id="menu" class="hidden">
+<div id="menu" style="display:none;">
   <h3 id="welcome"></h3>
 
-  <button onclick="openBLS()">🚑 כונן BLS</button>
-  <button onclick="alert('משתלם בהמשך')">🎒 משתלם</button>
-  <button onclick="alert('תן כבוד בהמשך')">❤️ תן כבוד</button>
+  <button onclick="showTab('bls')">🚑 כונן BLS</button>
+  <button onclick="showTab('mish')">🎒 משתלם</button>
+  <button onclick="showTab('honor')">❤️ תן כבוד</button>
 
-  <div id="content"></div>
+  <!-- BLS -->
+  <div id="bls" class="tab"></div>
+
+  <!-- משתלם -->
+  <div id="mish" class="tab"></div>
+
+  <!-- תן כבוד -->
+  <div id="honor" class="tab"></div>
 </div>
 
 </div>
@@ -83,7 +96,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDplJPY5X9D7PeorWsMwJswqF5Q9vq730",
+  apiKey: "AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
   authDomain: "afula-equipment.firebaseapp.com",
   projectId: "afula-equipment",
   storageBucket: "afula-equipment.firebasestorage.app",
@@ -96,34 +109,25 @@ const db = getFirestore(app);
 
 let currentUser = null;
 
-// 🔥 חשוב: תמיכה גם ב-Code וגם code (כדי שלא יישבר שוב)
-function normalize(data) {
+function normalize(d){
   return {
-    code: String(data.code || data.Code || "").trim(),
-    name: String(data.name || data.Name || "")
+    code: String(d.code || d.Code || "").trim(),
+    name: String(d.name || d.Name || "")
   };
 }
 
-// התחברות
+/* ---------- LOGIN ---------- */
 window.login = async function () {
 
   const code = document.getElementById("codeInput").value.trim();
-
-  if (!code) {
-    document.getElementById("msg").innerText = "הכנס מספר כונן";
-    return;
-  }
 
   const snap = await getDocs(collection(db, "volunteers"));
 
   let found = null;
 
   snap.forEach(doc => {
-    const data = normalize(doc.data());
-
-    if (data.code === code) {
-      found = data;
-    }
+    const d = normalize(doc.data());
+    if (d.code === code) found = d;
   });
 
   if (!found) {
@@ -133,27 +137,17 @@ window.login = async function () {
 
   currentUser = found;
 
-  document.getElementById("loginBox").classList.add("hidden");
-  document.getElementById("menu").classList.remove("hidden");
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("menu").style.display = "block";
 
   document.getElementById("welcome").innerText =
     "שלום " + found.name;
+
+  buildAll();
 };
 
-// BLS בסיסי
-const blsItems = [
-  { name: "כפפות M", max: 100, selected: 0 },
-  { name: "כפפות L", max: 100, selected: 0 },
-  { name: "פלסטרים", max: 10, selected: 0 },
-  { name: "תחבושת אישית", max: 2, selected: 0 },
-  { name: "חסם עורקים", max: 2, selected: 0 }
-];
-
-window.openBLS = function () {
-
-  let html = "<h3>🚑 כונן BLS</h3>";
-
-  blsItems.forEach((item, i) => {
-    html += `
-      <div class="item">
-        <b>${item
+/* ---------- DATA ---------- */
+const data = {
+  bls: [
+    { name: "כפפות M", max: 100, val: 0 },
+    { name: "
