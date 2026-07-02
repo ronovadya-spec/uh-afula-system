@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>מערכת ציוד - עפולה</title>
-
 <style>
 html,body{touch-action:manipulation;overscroll-behavior:none}
 body{font-family:Arial;direction:rtl;text-align:center;background:#f5f5f5;padding:12px}
@@ -12,74 +11,21 @@ body{font-family:Arial;direction:rtl;text-align:center;background:#f5f5f5;paddin
 button,input{padding:10px;margin:6px;width:85%;font-size:14px}
 button{background:#ff8c00;color:white;border:0;border-radius:9px}
 button:disabled{background:#ccc}
-
 h2{font-size:20px;margin:8px}
 h3{font-size:18px;margin:10px}
-
-.category{
-  margin-top:16px;
-  font-weight:bold;
-  color:#ff8c00;
-  font-size:20px;
-}
-
-.item{
-  position:relative;
-  background:#f8f8f8;
-  margin:8px;
-  padding:8px 14px;
-  border-radius:12px;
-  border:2px solid transparent;
-}
-
-.item.selected{
-  border-color:#ff8c00;
-  background:#fff7ee;
-}
-
-.item b{
-  font-size:18px;
-  display:block;
-  margin-bottom:4px;
-}
-
-.info{
-  position:absolute;
-  left:10px;
-  top:8px;
-  width:23px;
-  height:23px;
-  border-radius:50%;
-  padding:0;
-  margin:0;
-  font-weight:bold;
-  font-size:13px;
-}
-
-.qty{
-  margin-top:2px;
-}
-
-.qty button{
-  width:38px;
-  height:38px;
-  padding:0;
-  margin:4px 8px;
-  font-size:18px;
-}
-
-.qty span{
-  font-size:22px;
-  font-weight:bold;
-  margin:0 12px;
-}
-
+.category{margin-top:16px;font-weight:bold;color:#ff8c00;font-size:20px}
+.item{position:relative;background:#f8f8f8;margin:8px;padding:8px 14px;border-radius:12px;border:2px solid transparent}
+.item.selected{border-color:#ff8c00;background:#fff7ee}
+.item b{font-size:18px;display:block;margin-bottom:4px}
+.info{position:absolute;left:10px;top:8px;width:23px;height:23px;border-radius:50%;padding:0;margin:0;font-weight:bold;font-size:13px}
+.qty button{width:38px;height:38px;padding:0;margin:4px 8px;font-size:18px}
+.qty span{font-size:22px;font-weight:bold;margin:0 12px}
 .summary{font-weight:bold;color:#ff8c00;margin:10px;font-size:16px}
 .submit{margin-top:14px;font-weight:bold}
-
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);align-items:center;justify-content:center;z-index:999}
 .modal-box{background:white;width:85%;max-width:340px;border-radius:16px;padding:18px}
-.order-line{background:#f8f8f8;margin:7px;padding:7px;border-radius:8px}
+.order-card{background:#f8f8f8;margin:10px;padding:10px;border-radius:10px;text-align:right}
+.order-line{background:white;margin:6px;padding:7px;border-radius:8px}
 </style>
 </head>
 
@@ -98,6 +44,7 @@ h3{font-size:18px;margin:10px}
     <h3 id="hello"></h3>
 
     <button onclick="loadBLS()">🚑 כונן BLS</button>
+    <button onclick="loadMyOrders()">📦 ההזמנות שלי</button>
     <button disabled>🎒 משתלם</button>
     <button disabled>❤️ תן כבוד</button>
 
@@ -213,7 +160,6 @@ function renderBLS(){
       <div class="item ${item.qty > 0 ? "selected" : ""}">
         <button class="info" onclick="showInfo(${index})">i</button>
         <b>${item.name}</b>
-
         <div class="qty">
           <button onclick="changeQty(${index}, -1)" ${item.qty <= 0 ? "disabled" : ""}>➖</button>
           <span>${item.qty}</span>
@@ -255,13 +201,10 @@ window.closeInfo = function(){
 };
 
 window.openConfirm = function(){
-  const items = selectedItems();
   let html = `<p><b>🚑 כונן BLS</b></p>`;
-
-  items.forEach(i=>{
+  selectedItems().forEach(i=>{
     html += `<div class="order-line">${i.name} - ${i.qty}</div>`;
   });
-
   document.getElementById("confirmContent").innerHTML = html;
   document.getElementById("confirmModal").style.display = "flex";
 };
@@ -292,6 +235,45 @@ window.sendOrder = async function(){
   renderBLS();
 
   alert("ההזמנה נשלחה בהצלחה 🚑");
+};
+
+window.loadMyOrders = async function(){
+  document.getElementById("content").innerHTML = "טוען הזמנות...";
+
+  const snap = await getDocs(collection(db,"orders"));
+  let orders = [];
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+    if(String(d.volunteerCode) === String(currentUser.code)){
+      orders.push(d);
+    }
+  });
+
+  orders.reverse();
+
+  if(orders.length === 0){
+    document.getElementById("content").innerHTML = "<h3>📦 ההזמנות שלי</h3><p>אין הזמנות עדיין</p>";
+    return;
+  }
+
+  let html = "<h3>📦 ההזמנות שלי</h3>";
+
+  orders.forEach(order=>{
+    html += `
+      <div class="order-card">
+        <b>${order.type || "הזמנה"}</b><br>
+        סטטוס: ${order.status || "pending"}<br><br>
+    `;
+
+    (order.items || []).forEach(item=>{
+      html += `<div class="order-line">${item.name} - ${item.quantity}</div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  document.getElementById("content").innerHTML = html;
 };
 </script>
 
