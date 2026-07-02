@@ -22,6 +22,7 @@ h3{font-size:18px;margin:10px}
 .qty span{font-size:22px;font-weight:bold;margin:0 12px}
 .summary{font-weight:bold;color:#ff8c00;margin:10px;font-size:16px}
 .submit{margin-top:14px;font-weight:bold}
+.orders-btn{margin-top:16px;background:#444}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);align-items:center;justify-content:center;z-index:999}
 .modal-box{background:white;width:85%;max-width:340px;border-radius:16px;padding:18px}
 .order-card{background:#f8f8f8;margin:10px;padding:10px;border-radius:10px;text-align:right}
@@ -44,9 +45,10 @@ h3{font-size:18px;margin:10px}
     <h3 id="hello"></h3>
 
     <button onclick="loadBLS()">🚑 כונן BLS</button>
-    <button onclick="loadMyOrders()">📦 ההזמנות שלי</button>
     <button disabled>🎒 משתלם</button>
     <button disabled>❤️ תן כבוד</button>
+
+    <button class="orders-btn" onclick="loadMyOrders()">📦 ההזמנות שלי</button>
 
     <div id="content"></div>
   </div>
@@ -237,6 +239,14 @@ window.sendOrder = async function(){
   alert("ההזמנה נשלחה בהצלחה 🚑");
 };
 
+function statusText(status){
+  if(status === "pending") return "🟡 ממתין";
+  if(status === "in_progress") return "🔵 בטיפול";
+  if(status === "completed") return "🟢 הושלם";
+  if(status === "partial") return "🟠 נופק חלקית";
+  return status || "ממתין";
+}
+
 window.loadMyOrders = async function(){
   document.getElementById("content").innerHTML = "טוען הזמנות...";
 
@@ -263,7 +273,7 @@ window.loadMyOrders = async function(){
     html += `
       <div class="order-card">
         <b>${order.type || "הזמנה"}</b><br>
-        סטטוס: ${order.status || "pending"}<br><br>
+        סטטוס: ${statusText(order.status)}<br><br>
     `;
 
     (order.items || []).forEach(item=>{
