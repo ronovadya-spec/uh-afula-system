@@ -36,48 +36,25 @@ button{
   cursor:pointer;
 }
 
-/* 🔥 טאבים */
 .tab{
   display:none;
-  opacity:0;
-  transform:translateY(10px);
-  transition:0.3s ease;
 }
 
-.tab.active{
-  display:block;
-  opacity:1;
-  transform:translateY(0);
-}
-
-/* 🔥 פריטים עם אנימציה */
 .item{
   background:#f8f8f8;
   margin:10px;
   padding:12px;
   border-radius:10px;
-
-  opacity:0;
-  transform:scale(0.95);
-  animation:fadeIn 0.35s ease forwards;
+  animation:fade 0.25s ease;
 }
 
-@keyframes fadeIn{
-  to{
-    opacity:1;
-    transform:scale(1);
-  }
+@keyframes fade{
+  from{opacity:0; transform:translateY(10px);}
+  to{opacity:1; transform:translateY(0);}
 }
 
-.item:hover{
-  transform:scale(1.02);
-  transition:0.2s;
-}
-
-/* כפתורי ➕➖ */
 .item button{
   width:40px;
-  margin:5px;
 }
 </style>
 </head>
@@ -95,15 +72,13 @@ button{
 </div>
 
 <div id="menu" style="display:none;">
+
   <h3 id="welcome"></h3>
 
-  <button onclick="showTab('bls')">🚑 BLS</button>
-  <button onclick="showTab('mish')">🎒 משתלם</button>
-  <button onclick="showTab('honor')">❤️ תן כבוד</button>
+  <div id="tabs"></div>
 
-  <div id="bls" class="tab"></div>
-  <div id="mish" class="tab"></div>
-  <div id="honor" class="tab"></div>
+  <div id="content"></div>
+
 </div>
 
 </div>
@@ -113,27 +88,29 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const app = initializeApp({
-  apiKey:"AIzaSyDplJPY5X9D7PeorWsMwJswqF5Q9vq730",
+  apiKey:"AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
   authDomain:"afula-equipment.firebaseapp.com",
   projectId:"afula-equipment"
 });
 
 const db = getFirestore(app);
 
-let state={bls:[],mish:[],honor:[]};
+let user = null;
+let menus = {};
+let state = {};
 
 /* ---------- LOGIN ---------- */
-window.login=async function(){
+window.login = async function(){
 
-  const code=document.getElementById("codeInput").value.trim();
+  const code = document.getElementById("codeInput").value.trim();
 
-  const snap=await getDocs(collection(db,"volunteers"));
+  const snap = await getDocs(collection(db,"volunteers"));
 
-  let found=null;
+  let found = null;
 
   snap.forEach(d=>{
     const x=d.data();
-    if(String(x.code)===String(code)) found=x;
+    if(String(x.code) === String(code)) found = x;
   });
 
   if(!found){
@@ -141,24 +118,25 @@ window.login=async function(){
     return;
   }
 
+  user = found;
+
   document.getElementById("loginBox").style.display="none";
   document.getElementById("menu").style.display="block";
 
   document.getElementById("welcome").innerText="שלום "+found.name;
 
   await loadMenus();
-  renderAll();
-
-  showTab("bls");
+  renderTabs();
 };
 
-/* ---------- LOAD ---------- */
+/* ---------- LOAD MENUS ---------- */
 async function loadMenus(){
 
-  const snap=await getDocs(collection(db,"menus"));
+  const snap = await getDocs(collection(db,"menus"));
 
   snap.forEach(doc=>{
-    state[doc.id]=doc.data().items.map(i=>({
+    menus[doc.id] = doc.data();
+    state[doc.id] = doc.data().items.map(i=>({
       name:i.name,
       max:i.max,
       val:0
@@ -166,58 +144,55 @@ async function loadMenus(){
   });
 }
 
-/* ---------- RENDER ---------- */
-function renderAll(){
-  render("bls");
-  render("mish");
-  render("honor");
-}
-
-function render(t){
-
-  if(!state[t]) return;
+/* ---------- TABS ---------- */
+function renderTabs(){
 
   let html="";
 
-  state[t].forEach((i,idx)=>{
-    html+=`
-      <div class="item">
-        <b>${i.name}</b><br/>
-        תקן: ${i.max}<br/>
+  Object.keys(menus).forEach(key=>{
+    html += `<button onclick="openTab('${key}')">${menus[key].title}</button>`;
+  });
 
-        <button onclick="minus('${t}',${idx})">➖</button>
-        ${i.val}
-        <button onclick="plus('${t}',${idx})">➕</button>
+  document.getElementById("tabs").innerHTML = html;
+
+  // פותח ראשון
+  const first = Object.keys(menus)[0];
+  openTab(first);
+}
+
+window.openTab = function(tab){
+
+  let html="";
+
+  state[tab].forEach((item,i)=>{
+
+    html += `
+      <div class="item">
+        <b>${item.name}</b><br/>
+        תקן: ${item.max}<br/>
+
+        <button onclick="minus('${tab}',${i})">➖</button>
+        ${item.val}
+        <button onclick="plus('${tab}',${i})">➕</button>
       </div>
     `;
   });
 
-  document.getElementById(t).innerHTML=html;
-}
-
-/* ---------- TABS ---------- */
-window.showTab=function(t){
-
-  document.querySelectorAll(".tab").forEach(x=>{
-    x.classList.remove("active");
-  });
-
-  const el=document.getElementById(t);
-  el.classList.add("active");
+  document.getElementById("content").innerHTML = html;
 };
 
 /* ---------- PLUS MINUS ---------- */
-window.plus=function(t,i){
-  if(state[t][i].val<state[t][i].max){
-    state[t][i].val++;
-    render(t);
+window.plus = function(tab,i){
+  if(state[tab][i].val < state[tab][i].max){
+    state[tab][i].val++;
+    openTab(tab);
   }
 };
 
-window.minus=function(t,i){
-  if(state[t][i].val>0){
-    state[t][i].val--;
-    render(t);
+window.minus = function(tab,i){
+  if(state[tab][i].val > 0){
+    state[tab][i].val--;
+    openTab(tab);
   }
 };
 </script>
