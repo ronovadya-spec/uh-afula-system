@@ -1,75 +1,80 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-  <meta charset="UTF-8">
-  <title>מערכת ציוד - עפולה</title>
-  <style>
-    body {
-      font-family: Arial;
-      direction: rtl;
-      background: #f5f5f5;
-      text-align: center;
-      padding: 40px;
-    }
+<meta charset="UTF-8">
+<title>מערכת ציוד - עפולה</title>
 
-    .box {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 400px;
-      margin: auto;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
+<style>
+body {
+  font-family: Arial;
+  direction: rtl;
+  background: #f5f5f5;
+  text-align: center;
+  padding: 30px;
+}
 
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      width: 80%;
-    }
+.box {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 420px;
+  margin: auto;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
 
-    button {
-      background: orange;
-      border: none;
-      color: white;
-      cursor: pointer;
-      border-radius: 5px;
-    }
+input, button {
+  padding: 10px;
+  margin: 10px;
+  width: 85%;
+}
 
-    button:hover {
-      background: darkorange;
-    }
+button {
+  background: orange;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 16px;
+}
 
-    .hidden { display: none; }
-  </style>
+button:hover {
+  background: darkorange;
+}
+
+.hidden { display: none; }
+</style>
 </head>
+
 <body>
 
 <div class="box">
 
-  <h2>🚑 מערכת ציוד - סניף עפולה</h2>
+<h2>🚑 מערכת ציוד - סניף עפולה</h2>
 
-  <div id="loginBox">
-    <input id="codeInput" placeholder="הכנס מספר כונן" />
-    <button onclick="login()">כניסה</button>
-    <p id="msg"></p>
-  </div>
+<!-- התחברות -->
+<div id="loginBox">
+  <input id="codeInput" placeholder="הכנס מספר כונן" />
+  <button onclick="login()">כניסה</button>
+  <p id="msg"></p>
+</div>
 
-  <div id="menu" class="hidden">
-    <h3 id="welcome"></h3>
+<!-- תפריט -->
+<div id="menu" class="hidden">
+  <h3 id="welcome"></h3>
 
-    <button onclick="alert('כונן BLS בהמשך')">🚑 כונן BLS</button>
-    <button onclick="alert('משתלם בהמשך')">🎒 משתלם</button>
-    <button onclick="alert('תן כבוד בהמשך')">❤️ תן כבוד</button>
-
-  </div>
+  <button onclick="alert('BLS בהמשך')">🚑 כונן BLS</button>
+  <button onclick="alert('משתלם בהמשך')">🎒 משתלם</button>
+  <button onclick="alert('תן כבוד בהמשך')">❤️ תן כבוד</button>
+</div>
 
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDplJPY5X9D7PeorWsMwJswqF5Q9vq730",
+  apiKey: "AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
   authDomain: "afula-equipment.firebaseapp.com",
   projectId: "afula-equipment",
   storageBucket: "afula-equipment.firebasestorage.app",
@@ -78,12 +83,25 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-window.login = function () {
-  const code = document.getElementById("codeInput").value;
+window.login = async function () {
 
-  if (!code) {
-    document.getElementById("msg").innerText = "הכנס מספר כונן";
+  const code = document.getElementById("codeInput").value.trim();
+
+  const snap = await getDocs(collection(db, "volunteers"));
+
+  let found = null;
+
+  snap.forEach(doc => {
+    const data = doc.data();
+    if (String(data.code) === String(code)) {
+      found = data;
+    }
+  });
+
+  if (!found) {
+    document.getElementById("msg").innerText = "כונן לא נמצא";
     return;
   }
 
@@ -91,7 +109,7 @@ window.login = function () {
   document.getElementById("menu").classList.remove("hidden");
 
   document.getElementById("welcome").innerText =
-    "שלום כונן " + code;
+    "שלום " + found.name;
 };
 </script>
 
