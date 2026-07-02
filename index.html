@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>מערכת ציוד - עפולה</title>
+<title>מערכת הזמנת ציוד - סניף עפולה</title>
+
 <style>
 html,body{touch-action:manipulation;overscroll-behavior:none}
 body{font-family:Arial;direction:rtl;text-align:center;background:#f5f5f5;padding:12px}
@@ -11,8 +12,12 @@ body{font-family:Arial;direction:rtl;text-align:center;background:#f5f5f5;paddin
 button,input{padding:10px;margin:6px;width:85%;font-size:14px}
 button{background:#ff8c00;color:white;border:0;border-radius:9px}
 button:disabled{background:#ccc}
-h2{font-size:20px;margin:8px}
+h1{font-size:22px;margin:6px;color:#ff8c00}
+h2{font-size:17px;margin:4px;color:#444}
 h3{font-size:18px;margin:10px}
+.divider{height:1px;background:#ddd;margin:14px}
+.menu-btn{display:block;margin:8px auto}
+.orders-btn{background:#444}
 .category{margin-top:16px;font-weight:bold;color:#ff8c00;font-size:20px}
 .item{position:relative;background:#f8f8f8;margin:8px;padding:8px 14px;border-radius:12px;border:2px solid transparent}
 .item.selected{border-color:#ff8c00;background:#fff7ee}
@@ -22,7 +27,6 @@ h3{font-size:18px;margin:10px}
 .qty span{font-size:22px;font-weight:bold;margin:0 12px}
 .summary{font-weight:bold;color:#ff8c00;margin:10px;font-size:16px}
 .submit{margin-top:14px;font-weight:bold}
-.orders-btn{margin-top:16px;background:#444}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);align-items:center;justify-content:center;z-index:999}
 .modal-box{background:white;width:85%;max-width:340px;border-radius:16px;padding:18px}
 .order-card{background:#f8f8f8;margin:10px;padding:10px;border-radius:10px;text-align:right}
@@ -33,7 +37,8 @@ h3{font-size:18px;margin:10px}
 <body>
 
 <div class="box">
-  <h2>🚑 מערכת ציוד - סניף עפולה</h2>
+  <h1>🚑 מערכת הזמנת ציוד</h1>
+  <h2>סניף עפולה</h2>
 
   <div id="loginBox">
     <input id="codeInput" placeholder="הכנס קוד כונן">
@@ -44,11 +49,13 @@ h3{font-size:18px;margin:10px}
   <div id="app" style="display:none">
     <h3 id="hello"></h3>
 
-    <button onclick="loadBLS()">🚑 כונן BLS</button>
-    <button disabled>🎒 משתלם</button>
-    <button disabled>❤️ תן כבוד</button>
+    <button class="menu-btn" onclick="loadBLS()">🚑 כונן BLS</button>
+    <button class="menu-btn" disabled>🎒 משתלם</button>
+    <button class="menu-btn" disabled>❤️ תן כבוד</button>
 
-    <button class="orders-btn" onclick="loadMyOrders()">📦 ההזמנות שלי</button>
+    <div class="divider"></div>
+
+    <button class="menu-btn orders-btn" onclick="loadMyOrders()">📦 ההזמנות שלי</button>
 
     <div id="content"></div>
   </div>
@@ -105,7 +112,7 @@ window.login = async function(){
   currentUser = found;
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("app").style.display = "block";
-  document.getElementById("hello").innerText = "שלום " + found.name;
+  document.getElementById("hello").innerText = "שלום, " + found.name + " 👋";
 };
 
 window.loadBLS = async function(){
@@ -207,6 +214,7 @@ window.openConfirm = function(){
   selectedItems().forEach(i=>{
     html += `<div class="order-line">${i.name} - ${i.qty}</div>`;
   });
+
   document.getElementById("confirmContent").innerHTML = html;
   document.getElementById("confirmModal").style.display = "flex";
 };
