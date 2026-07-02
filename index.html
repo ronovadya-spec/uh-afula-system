@@ -33,28 +33,18 @@ button{
   border:none;
   color:white;
   border-radius:6px;
-  cursor:pointer;
 }
 
-.tab{
-  display:none;
+.tab-btn{
+  width:30%;
+  margin:5px;
 }
 
 .item{
   background:#f8f8f8;
   margin:10px;
-  padding:12px;
-  border-radius:10px;
-  animation:fade 0.25s ease;
-}
-
-@keyframes fade{
-  from{opacity:0; transform:translateY(10px);}
-  to{opacity:1; transform:translateY(0);}
-}
-
-.item button{
-  width:40px;
+  padding:10px;
+  border-radius:8px;
 }
 </style>
 </head>
@@ -63,7 +53,7 @@ button{
 
 <div class="box">
 
-<h2>🚑 מערכת ציוד - עפולה</h2>
+<h2>🚑 מערכת ציוד</h2>
 
 <div id="loginBox">
   <input id="codeInput" placeholder="קוד כונן" />
@@ -71,11 +61,13 @@ button{
   <p id="msg"></p>
 </div>
 
-<div id="menu" style="display:none;">
+<div id="app" style="display:none;">
 
-  <h3 id="welcome"></h3>
+  <h3 id="hello"></h3>
 
-  <div id="tabs"></div>
+  <button class="tab-btn" onclick="showTab('bls')">BLS</button>
+  <button class="tab-btn" onclick="showTab('mish')">משתלם</button>
+  <button class="tab-btn" onclick="showTab('honor')">תן כבוד</button>
 
   <div id="content"></div>
 
@@ -97,7 +89,7 @@ const db = getFirestore(app);
 
 let user = null;
 let menus = {};
-let state = {};
+let currentTab = "bls";
 
 /* ---------- LOGIN ---------- */
 window.login = async function(){
@@ -109,71 +101,58 @@ window.login = async function(){
   let found = null;
 
   snap.forEach(d=>{
-    const x=d.data();
+    const x = d.data();
     if(String(x.code) === String(code)) found = x;
   });
 
   if(!found){
-    document.getElementById("msg").innerText="כונן לא נמצא";
+    document.getElementById("msg").innerText = "כונן לא נמצא";
     return;
   }
 
   user = found;
 
   document.getElementById("loginBox").style.display="none";
-  document.getElementById("menu").style.display="block";
+  document.getElementById("app").style.display="block";
 
-  document.getElementById("welcome").innerText="שלום "+found.name;
+  document.getElementById("hello").innerText = "שלום " + found.name;
 
   await loadMenus();
-  renderTabs();
+
+  showTab("bls");
 };
 
-/* ---------- LOAD MENUS ---------- */
+/* ---------- LOAD ---------- */
 async function loadMenus(){
 
   const snap = await getDocs(collection(db,"menus"));
 
+  menus = {};
+
   snap.forEach(doc=>{
-    menus[doc.id] = doc.data();
-    state[doc.id] = doc.data().items.map(i=>({
-      name:i.name,
-      max:i.max,
-      val:0
-    }));
+    menus[doc.data().title.toLowerCase()] = doc.data().items;
   });
 }
 
 /* ---------- TABS ---------- */
-function renderTabs(){
+window.showTab = function(tab){
 
-  let html="";
+  currentTab = tab;
 
-  Object.keys(menus).forEach(key=>{
-    html += `<button onclick="openTab('${key}')">${menus[key].title}</button>`;
-  });
+  const items = menus[tab];
 
-  document.getElementById("tabs").innerHTML = html;
+  if(!items){
+    document.getElementById("content").innerHTML = "אין נתונים";
+    return;
+  }
 
-  // פותח ראשון
-  const first = Object.keys(menus)[0];
-  openTab(first);
-}
+  let html = "";
 
-window.openTab = function(tab){
-
-  let html="";
-
-  state[tab].forEach((item,i)=>{
-
+  items.forEach(i=>{
     html += `
       <div class="item">
-        <b>${item.name}</b><br/>
-        תקן: ${item.max}<br/>
-
-        <button onclick="minus('${tab}',${i})">➖</button>
-        ${item.val}
-        <button onclick="plus('${tab}',${i})">➕</button>
+        <b>${i.name}</b><br/>
+        תקן: ${i.max}
       </div>
     `;
   });
@@ -181,20 +160,6 @@ window.openTab = function(tab){
   document.getElementById("content").innerHTML = html;
 };
 
-/* ---------- PLUS MINUS ---------- */
-window.plus = function(tab,i){
-  if(state[tab][i].val < state[tab][i].max){
-    state[tab][i].val++;
-    openTab(tab);
-  }
-};
-
-window.minus = function(tab,i){
-  if(state[tab][i].val > 0){
-    state[tab][i].val--;
-    openTab(tab);
-  }
-};
 </script>
 
 </body>
