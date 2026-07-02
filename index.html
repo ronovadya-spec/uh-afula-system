@@ -26,6 +26,7 @@ input, button {
   padding: 10px;
   margin: 10px;
   width: 85%;
+  font-size: 16px;
 }
 
 button {
@@ -34,11 +35,17 @@ button {
   color: white;
   cursor: pointer;
   border-radius: 6px;
-  font-size: 16px;
 }
 
 button:hover {
   background: darkorange;
+}
+
+.item {
+  margin: 10px 0;
+  padding: 10px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
 .hidden { display: none; }
@@ -62,9 +69,11 @@ button:hover {
 <div id="menu" class="hidden">
   <h3 id="welcome"></h3>
 
-  <button onclick="alert('BLS בהמשך')">🚑 כונן BLS</button>
-  <button onclick="alert('משתלם בהמשך')">🎒 משתלם</button>
-  <button onclick="alert('תן כבוד בהמשך')">❤️ תן כבוד</button>
+  <button onclick="openBLS()">🚑 כונן BLS</button>
+  <button onclick="alert('משתלם בקרוב')">🎒 משתלם</button>
+  <button onclick="alert('תן כבוד בקרוב')">❤️ תן כבוד</button>
+
+  <div id="content"></div>
 </div>
 
 </div>
@@ -74,7 +83,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
+  apiKey: "AIzaSyDplJPY5X9D7PeorWsMwJswqF5Q9vq730",
   authDomain: "afula-equipment.firebaseapp.com",
   projectId: "afula-equipment",
   storageBucket: "afula-equipment.firebasestorage.app",
@@ -85,6 +94,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+let currentUser = null;
+
+const blsItems = [
+  { name: "כפפות M", max: 100, selected: 0 },
+  { name: "כפפות L", max: 100, selected: 0 },
+  { name: "פלסטרים", max: 10, selected: 0 },
+  { name: "תחבושת אישית", max: 2, selected: 0 },
+  { name: "חסם עורקים", max: 2, selected: 0 }
+];
+
+// התחברות
 window.login = async function () {
 
   const code = document.getElementById("codeInput").value.trim();
@@ -105,11 +125,48 @@ window.login = async function () {
     return;
   }
 
+  currentUser = found;
+
   document.getElementById("loginBox").classList.add("hidden");
   document.getElementById("menu").classList.remove("hidden");
 
   document.getElementById("welcome").innerText =
     "שלום " + found.name;
+};
+
+// פתיחת BLS
+window.openBLS = function () {
+
+  let html = "<h3>🚑 כונן BLS</h3>";
+
+  blsItems.forEach((item, i) => {
+    html += `
+      <div class="item">
+        <b>${item.name}</b><br/>
+        תקן: ${item.max}<br/>
+
+        <button onclick="minus(${i})">➖</button>
+        ${item.selected}
+        <button onclick="plus(${i})">➕</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("content").innerHTML = html;
+};
+
+window.plus = function(i) {
+  if (blsItems[i].selected < blsItems[i].max) {
+    blsItems[i].selected++;
+    openBLS();
+  }
+};
+
+window.minus = function(i) {
+  if (blsItems[i].selected > 0) {
+    blsItems[i].selected--;
+    openBLS();
+  }
 };
 </script>
 
