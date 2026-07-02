@@ -5,13 +5,20 @@
 <title>מערכת ציוד - עפולה</title>
 <style>
 body{font-family:Arial;direction:rtl;text-align:center;background:#f5f5f5;padding:20px}
-.box{background:white;max-width:520px;margin:auto;padding:20px;border-radius:12px;box-shadow:0 0 10px #ddd}
+.box{background:white;max-width:540px;margin:auto;padding:20px;border-radius:16px;box-shadow:0 0 12px #ddd}
 button,input{padding:12px;margin:8px;width:85%;font-size:16px}
-button{background:#ff8c00;color:white;border:0;border-radius:8px}
-.category{margin-top:20px;font-weight:bold;color:#ff8c00;font-size:20px}
-.item{background:#f8f8f8;margin:10px;padding:12px;border-radius:10px}
-.qty button{width:45px;margin:5px}
-.qty span{font-size:20px;font-weight:bold;margin:0 12px}
+button{background:#ff8c00;color:white;border:0;border-radius:10px}
+button:disabled{background:#ccc}
+.category{margin-top:24px;font-weight:bold;color:#ff8c00;font-size:22px}
+.item{position:relative;background:#f8f8f8;margin:12px;padding:18px;border-radius:14px;border:2px solid transparent}
+.item.selected{border-color:#ff8c00;background:#fff7ee}
+.info{position:absolute;left:12px;top:12px;width:28px;height:28px;border-radius:50%;padding:0;margin:0;font-weight:bold}
+.qty button{width:54px;margin:8px;font-size:22px}
+.qty span{font-size:24px;font-weight:bold;margin:0 16px}
+.summary{font-weight:bold;color:#ff8c00;margin:12px}
+.submit{margin-top:20px;font-weight:bold}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);align-items:center;justify-content:center}
+.modal-box{background:white;width:85%;max-width:360px;border-radius:16px;padding:22px}
 </style>
 </head>
 <body>
@@ -33,6 +40,14 @@ button{background:#ff8c00;color:white;border:0;border-radius:8px}
     <button disabled>❤️ תן כבוד</button>
 
     <div id="content"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-box">
+    <h3 id="modalTitle"></h3>
+    <p id="modalText"></p>
+    <button onclick="closeInfo()">סגור</button>
   </div>
 </div>
 
@@ -58,10 +73,7 @@ window.login = async function(){
   snap.forEach(doc=>{
     const d = doc.data();
     if(String(d.code || d.Code).trim() === code){
-      found = {
-        code: String(d.code || d.Code).trim(),
-        name: d.name || d.Name
-      };
+      found = { code:String(d.code || d.Code).trim(), name:d.name || d.Name };
     }
   });
 
@@ -83,10 +95,7 @@ window.loadBLS = async function(){
   let blsId = null;
 
   menusSnap.forEach(doc=>{
-    const d = doc.data();
-    if(d.title === "BLS"){
-      blsId = doc.id;
-    }
+    if(doc.data().title === "BLS") blsId = doc.id;
   });
 
   if(!blsId){
@@ -100,7 +109,6 @@ window.loadBLS = async function(){
   itemsSnap.forEach(doc=>{
     const d = doc.data();
     blsItems.push({
-      id: doc.id,
       name: d.name,
       max: Number(d.max || 0),
       category: d.category || "ללא קטגוריה",
@@ -114,8 +122,14 @@ window.loadBLS = async function(){
   renderBLS();
 };
 
+function selectedCount(){
+  return blsItems.filter(i => i.qty > 0).length;
+}
+
 function renderBLS(){
   let html = "<h3>🚑 כונן BLS</h3>";
+  html += `<div class="summary">${selectedCount()} פריטים נבחרו</div>`;
+
   let currentCategory = "";
 
   blsItems.forEach((item,index)=>{
@@ -125,18 +139,24 @@ function renderBLS(){
     }
 
     html += `
-      <div class="item">
-        <b>${item.name}</b><br>
-        תקן: ${item.max}<br>
-        קפיצה: ${item.step}
+      <div class="item ${item.qty > 0 ? "selected" : ""}">
+        <button class="info" onclick="showInfo(${index})">i</button>
+        <b>${item.name}</b>
+
         <div class="qty">
-          <button onclick="changeQty(${index}, -1)">➖</button>
+          <button onclick="changeQty(${index}, 1)" ${item.qty >= item.max ? "disabled" : ""}>➕</button>
           <span>${item.qty}</span>
-          <button onclick="changeQty(${index}, 1)">➕</button>
+          <button onclick="changeQty(${index}, -1)" ${item.qty <= 0 ? "disabled" : ""}>➖</button>
         </div>
       </div>
     `;
   });
+
+  html += `
+    <button class="submit" ${selectedCount() === 0 ? "disabled" : ""} onclick="alert('בשלב הבא נחבר שליחה')">
+      📦 שלח הזמנה
+    </button>
+  `;
 
   document.getElementById("content").innerHTML = html;
 }
@@ -145,15 +165,22 @@ window.changeQty = function(index, direction){
   const item = blsItems[index];
   const next = item.qty + (item.step * direction);
 
-  if(next < 0){
-    item.qty = 0;
-  } else if(next > item.max){
-    item.qty = item.max;
-  } else {
-    item.qty = next;
-  }
+  if(next < 0) item.qty = 0;
+  else if(next > item.max) item.qty = item.max;
+  else item.qty = next;
 
   renderBLS();
+};
+
+window.showInfo = function(index){
+  const item = blsItems[index];
+  document.getElementById("modalTitle").innerText = item.name;
+  document.getElementById("modalText").innerText = "תקן: " + item.max;
+  document.getElementById("modal").style.display = "flex";
+};
+
+window.closeInfo = function(){
+  document.getElementById("modal").style.display = "none";
 };
 </script>
 
