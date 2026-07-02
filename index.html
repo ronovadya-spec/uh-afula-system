@@ -2,25 +2,120 @@
 <html lang="he">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>מערכת ציוד - עפולה</title>
+
 <style>
-body{font-family:Arial;direction:rtl;text-align:center;background:#f5f5f5;padding:20px}
-.box{background:white;max-width:540px;margin:auto;padding:20px;border-radius:16px;box-shadow:0 0 12px #ddd}
-button,input{padding:12px;margin:8px;width:85%;font-size:16px}
-button{background:#ff8c00;color:white;border:0;border-radius:10px}
-button:disabled{background:#ccc}
-.category{margin-top:24px;font-weight:bold;color:#ff8c00;font-size:22px}
-.item{position:relative;background:#f8f8f8;margin:12px;padding:18px;border-radius:14px;border:2px solid transparent}
-.item.selected{border-color:#ff8c00;background:#fff7ee}
-.info{position:absolute;left:12px;top:12px;width:28px;height:28px;border-radius:50%;padding:0;margin:0;font-weight:bold}
-.qty button{width:54px;margin:8px;font-size:22px}
-.qty span{font-size:24px;font-weight:bold;margin:0 16px}
-.summary{font-weight:bold;color:#ff8c00;margin:12px}
-.submit{margin-top:20px;font-weight:bold}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);align-items:center;justify-content:center}
-.modal-box{background:white;width:85%;max-width:360px;border-radius:16px;padding:22px}
+html,body{
+  touch-action:manipulation;
+  overscroll-behavior:none;
+}
+body{
+  font-family:Arial;
+  direction:rtl;
+  text-align:center;
+  background:#f5f5f5;
+  padding:20px;
+}
+.box{
+  background:white;
+  max-width:540px;
+  margin:auto;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 0 12px #ddd;
+}
+button,input{
+  padding:12px;
+  margin:8px;
+  width:85%;
+  font-size:16px;
+}
+button{
+  background:#ff8c00;
+  color:white;
+  border:0;
+  border-radius:10px;
+  touch-action:manipulation;
+}
+button:disabled{
+  background:#ccc;
+}
+.category{
+  margin-top:24px;
+  font-weight:bold;
+  color:#ff8c00;
+  font-size:22px;
+}
+.item{
+  position:relative;
+  background:#f8f8f8;
+  margin:12px;
+  padding:18px;
+  border-radius:14px;
+  border:2px solid transparent;
+}
+.item.selected{
+  border-color:#ff8c00;
+  background:#fff7ee;
+}
+.info{
+  position:absolute;
+  left:12px;
+  top:12px;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  padding:0;
+  margin:0;
+  font-weight:bold;
+}
+.qty button{
+  width:44px;
+  height:44px;
+  padding:0;
+  margin:8px;
+  font-size:20px;
+}
+.qty span{
+  font-size:24px;
+  font-weight:bold;
+  margin:0 14px;
+}
+.summary{
+  font-weight:bold;
+  color:#ff8c00;
+  margin:12px;
+}
+.submit{
+  margin-top:20px;
+  font-weight:bold;
+}
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+.modal-box{
+  background:white;
+  width:85%;
+  max-width:360px;
+  border-radius:16px;
+  padding:22px;
+}
+.order-line{
+  background:#f8f8f8;
+  margin:8px;
+  padding:8px;
+  border-radius:8px;
+}
 </style>
 </head>
+
 <body>
 
 <div class="box">
@@ -43,17 +138,26 @@ button:disabled{background:#ccc}
   </div>
 </div>
 
-<div id="modal" class="modal">
+<div id="infoModal" class="modal">
   <div class="modal-box">
-    <h3 id="modalTitle"></h3>
-    <p id="modalText"></p>
+    <h3 id="infoTitle"></h3>
+    <p id="infoText"></p>
     <button onclick="closeInfo()">סגור</button>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal">
+  <div class="modal-box">
+    <h3>אישור הזמנה</h3>
+    <div id="confirmContent"></div>
+    <button onclick="sendOrder()">שלח הזמנה</button>
+    <button onclick="closeConfirm()">חזור</button>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey:"AIzaSyDplJPY5X9D7PeorWsMwJswqF5Q9vq730",
@@ -122,13 +226,13 @@ window.loadBLS = async function(){
   renderBLS();
 };
 
-function selectedCount(){
-  return blsItems.filter(i => i.qty > 0).length;
+function selectedItems(){
+  return blsItems.filter(i => i.qty > 0);
 }
 
 function renderBLS(){
   let html = "<h3>🚑 כונן BLS</h3>";
-  html += `<div class="summary">${selectedCount()} פריטים נבחרו</div>`;
+  html += `<div class="summary">${selectedItems().length} פריטים נבחרו</div>`;
 
   let currentCategory = "";
 
@@ -153,8 +257,8 @@ function renderBLS(){
   });
 
   html += `
-    <button class="submit" ${selectedCount() === 0 ? "disabled" : ""} onclick="alert('בשלב הבא נחבר שליחה')">
-      📦 שלח הזמנה
+    <button class="submit" ${selectedItems().length === 0 ? "disabled" : ""} onclick="openConfirm()">
+      📦 שלח הזמנה (${selectedItems().length})
     </button>
   `;
 
@@ -174,13 +278,53 @@ window.changeQty = function(index, direction){
 
 window.showInfo = function(index){
   const item = blsItems[index];
-  document.getElementById("modalTitle").innerText = item.name;
-  document.getElementById("modalText").innerText = "תקן: " + item.max;
-  document.getElementById("modal").style.display = "flex";
+  document.getElementById("infoTitle").innerText = item.name;
+  document.getElementById("infoText").innerText = "תקן: " + item.max;
+  document.getElementById("infoModal").style.display = "flex";
 };
 
 window.closeInfo = function(){
-  document.getElementById("modal").style.display = "none";
+  document.getElementById("infoModal").style.display = "none";
+};
+
+window.openConfirm = function(){
+  const items = selectedItems();
+
+  let html = `<p><b>🚑 כונן BLS</b></p>`;
+  items.forEach(i=>{
+    html += `<div class="order-line">${i.name} - ${i.qty}</div>`;
+  });
+
+  document.getElementById("confirmContent").innerHTML = html;
+  document.getElementById("confirmModal").style.display = "flex";
+};
+
+window.closeConfirm = function(){
+  document.getElementById("confirmModal").style.display = "none";
+};
+
+window.sendOrder = async function(){
+  const items = selectedItems().map(i=>({
+    name:i.name,
+    quantity:i.qty,
+    max:i.max,
+    category:i.category
+  }));
+
+  await addDoc(collection(db,"orders"), {
+    volunteerName: currentUser.name,
+    volunteerCode: currentUser.code,
+    type: "BLS",
+    items: items,
+    status: "pending",
+    createdAt: new Date()
+  });
+
+  blsItems.forEach(i=>i.qty = 0);
+  closeConfirm();
+  renderBLS();
+
+  alert("ההזמנה נשלחה בהצלחה 🚑");
 };
 </script>
 
