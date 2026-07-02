@@ -17,7 +17,7 @@ body {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  max-width: 420px;
+  max-width: 450px;
   margin: auto;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
@@ -26,6 +26,7 @@ input, button {
   padding: 10px;
   margin: 10px;
   width: 85%;
+  font-size: 16px;
 }
 
 button {
@@ -34,11 +35,17 @@ button {
   color: white;
   cursor: pointer;
   border-radius: 6px;
-  font-size: 16px;
 }
 
 button:hover {
   background: darkorange;
+}
+
+.item {
+  margin: 10px 0;
+  padding: 10px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
 .hidden { display: none; }
@@ -62,9 +69,11 @@ button:hover {
 <div id="menu" class="hidden">
   <h3 id="welcome"></h3>
 
-  <button onclick="alert('BLS בהמשך')">🚑 כונן BLS</button>
+  <button onclick="openBLS()">🚑 כונן BLS</button>
   <button onclick="alert('משתלם בהמשך')">🎒 משתלם</button>
   <button onclick="alert('תן כבוד בהמשך')">❤️ תן כבוד</button>
+
+  <div id="content"></div>
 </div>
 
 </div>
@@ -74,7 +83,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDplJPY5X9d7PeorWsMwJswqF5Q9vq730",
+  apiKey: "AIzaSyDplJPY5X9D7PeorWsMwJswqF5Q9vq730",
   authDomain: "afula-equipment.firebaseapp.com",
   projectId: "afula-equipment",
   storageBucket: "afula-equipment.firebasestorage.app",
@@ -85,9 +94,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-window.login = async function () {
+let currentUser = null;
 
-  console.log("LOGIN START");
+// 🔥 חשוב: תמיכה גם ב-Code וגם code (כדי שלא יישבר שוב)
+function normalize(data) {
+  return {
+    code: String(data.code || data.Code || "").trim(),
+    name: String(data.name || data.Name || "")
+  };
+}
+
+// התחברות
+window.login = async function () {
 
   const code = document.getElementById("codeInput").value.trim();
 
@@ -96,38 +114,46 @@ window.login = async function () {
     return;
   }
 
-  try {
-    const snap = await getDocs(collection(db, "volunteers"));
+  const snap = await getDocs(collection(db, "volunteers"));
 
-    console.log("DATA LOADED:", snap.docs.length);
+  let found = null;
 
-    let found = null;
+  snap.forEach(doc => {
+    const data = normalize(doc.data());
 
-    snap.forEach(doc => {
-      const data = doc.data();
-      console.log(data);
-
-      if (String(data.code).trim() === String(code).trim()) {
-        found = data;
-      }
-    });
-
-    if (!found) {
-      document.getElementById("msg").innerText = "כונן לא נמצא";
-      return;
+    if (data.code === code) {
+      found = data;
     }
+  });
 
-    document.getElementById("loginBox").classList.add("hidden");
-    document.getElementById("menu").classList.remove("hidden");
-
-    document.getElementById("welcome").innerText =
-      "שלום " + found.name;
-
-  } catch (e) {
-    document.getElementById("msg").innerText = "שגיאה בחיבור לשרת";
+  if (!found) {
+    document.getElementById("msg").innerText = "כונן לא נמצא";
+    return;
   }
-};
-</script>
 
-</body>
-</html>
+  currentUser = found;
+
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("menu").classList.remove("hidden");
+
+  document.getElementById("welcome").innerText =
+    "שלום " + found.name;
+};
+
+// BLS בסיסי
+const blsItems = [
+  { name: "כפפות M", max: 100, selected: 0 },
+  { name: "כפפות L", max: 100, selected: 0 },
+  { name: "פלסטרים", max: 10, selected: 0 },
+  { name: "תחבושת אישית", max: 2, selected: 0 },
+  { name: "חסם עורקים", max: 2, selected: 0 }
+];
+
+window.openBLS = function () {
+
+  let html = "<h3>🚑 כונן BLS</h3>";
+
+  blsItems.forEach((item, i) => {
+    html += `
+      <div class="item">
+        <b>${item
